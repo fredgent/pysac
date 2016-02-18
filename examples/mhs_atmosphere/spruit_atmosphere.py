@@ -245,6 +245,7 @@ for l_string in ('l_linear','l_const','l_sqrt','l_square'):
                   option_pars,
                   physical_constants,
                   coords,
+                  rank,
                   model_pars['Nxyz']
                  )
     # save the balancing forces as the background source terms for SAC simulation
@@ -255,6 +256,7 @@ for l_string in ('l_linear','l_const','l_sqrt','l_square'):
                   option_pars,
                   physical_constants,
                   coords,
+                  rank,
                   model_pars['Nxyz']
                  )
     # save auxilliary variable and 1D profiles for plotting and analysis
@@ -287,6 +289,7 @@ for l_string in ('l_linear','l_const','l_sqrt','l_square'):
                   option_pars,
                   physical_constants,
                   coords,
+                  rank,
                   model_pars['Nxyz']
                  )
     atm.mhs_snapshot.save_auxilliary1D(
@@ -297,5 +300,6 @@ for l_string in ('l_linear','l_const','l_sqrt','l_square'):
                   option_pars,
                   physical_constants,
                   coords,
+                  rank,
                   model_pars['Nxyz']
                  )

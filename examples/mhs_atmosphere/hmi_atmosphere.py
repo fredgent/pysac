@@ -221,6 +221,7 @@ atm.mhs_snapshot.save_SACvariables(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 # save the balancing forces as the background source terms for SAC simulation
@@ -231,6 +232,7 @@ atm.mhs_snapshot.save_SACsources(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 # save auxilliary variable and 1D profiles for plotting and analysis
@@ -263,6 +265,7 @@ atm.mhs_snapshot.save_auxilliary3D(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 atm.mhs_snapshot.save_auxilliary1D(
@@ -273,5 +276,6 @@ atm.mhs_snapshot.save_auxilliary1D(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )

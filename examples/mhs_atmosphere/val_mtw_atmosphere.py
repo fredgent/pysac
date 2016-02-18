@@ -29,7 +29,7 @@ import os
 import numpy as np
 import pysac.mhs_atmosphere as atm
 import astropy.units as u
-from pysac.mhs_atmosphere.parameters.model_pars import paper2d as model_pars
+from pysac.mhs_atmosphere.parameters.model_pars import paper1 as model_pars
 #==============================================================================
 #check whether mpi is required and the number of procs = size
 #==============================================================================
@@ -58,7 +58,6 @@ scales, physical_constants = \
 
 #obtain code coordinates and model parameters in astropy units
 coords = atm.model_pars.get_coords(model_pars['Nxyz'], u.Quantity(model_pars['xyz']))
-
 #interpolate the hs 1D profiles from empirical data source[s]
 empirical_data = atm.hs_atmosphere.read_VAL3c_MTW(mu=physical_constants['mu'])
 
@@ -218,6 +217,7 @@ atm.mhs_snapshot.save_SACvariables(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 # save the balancing forces as the background source terms for SAC simulation
@@ -228,6 +228,7 @@ atm.mhs_snapshot.save_SACsources(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 # save auxilliary variable and 1D profiles for plotting and analysis
@@ -260,6 +261,7 @@ atm.mhs_snapshot.save_auxilliary3D(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 atm.mhs_snapshot.save_auxilliary1D(
@@ -270,6 +272,7 @@ atm.mhs_snapshot.save_auxilliary1D(
               option_pars,
               physical_constants,
               coords,
+              rank,
               model_pars['Nxyz']
              )
 if rho.min()<0 or pressure.min()<0:

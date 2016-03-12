@@ -69,7 +69,7 @@ coords = atm.model_pars.get_hmi_coords(
                 model_pars['xyz'],
                 indx = indx,
                 dataset = dataset,
-                l_newdata = False
+                l_newdata = False,
                 rank=rank,
                 lmpi=l_mpi
                )

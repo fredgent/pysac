@@ -57,11 +57,23 @@ option_pars = atm.options.set_options(model_pars, l_mpi, l_gdf=True)
 scales, physical_constants = \
     atm.units_const.get_parameters()
 
+#dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram.fits'
+dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram_fits'
+l_newdata = True # change this to False if a local copy already exists at ~/sunpy/data/
 #obtain code coordinates and model parameters in astropy units
-coords = atm.model_pars.get_hmi_map(model_pars, option_pars, indx = [1787,1798,1818,1822], 
-                dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram_fits',
+model_pars['Nxyz'] = [64,64,128] # 3D grid
+model_pars['xyz']  = [-0.63*u.Mm,0.63*u.Mm,-0.63*u.Mm,0.63*u.Mm,0.0*u.Mm,3.8*u.Mm]
+indx = [1787,1798,1818,1826]
+coords = atm.model_pars.get_hmi_coords(
+                model_pars['Nxyz'],
+                model_pars['xyz'],
+                indx = indx,
+                dataset = dataset,
                 l_newdata = False
+                rank=rank,
+                lmpi=l_mpi
                )
+model_pars['xyz'][0:4] = coords['xmin'],coords['xmax'],coords['ymin'],coords['ymax']
 
 #interpolate the hs 1D profiles from empirical data source[s]
 empirical_data = atm.hs_atmosphere.read_VAL3c_MTW(mu=physical_constants['mu'])
@@ -92,12 +104,15 @@ pressure_Z, rho_Z, Rgas_Z = atm.hs_atmosphere.vertical_profile(
 # load flux tube footpoint parameters
 #==============================================================================
 # axial location and value of Bz at each footpoint
-model_pars['B_corona']/=model_pars['nftubes']
-xi, yi, Si = atm.flux_tubes.get_flux_tubes(
-                                model_pars,
-                                coords,
-                                option_pars
-                               )
+Stmp,xtmp,ytmp,FWHM,sdummy,xdummy,ydummy=atm.parameters.model_pars.get_hmi_map(
+                indx,
+                dataset = dataset,
+                l_newdata = False,
+                rank=rank,
+                lmpi=l_mpi
+               )
+xi, yi, Si = xtmp.to(u.Mm), ytmp.to(u.Mm), Stmp
+model_pars['radial_scale'] = 0.5*FWHM.to(u.Mm)/np.sqrt(2*np.log(2))
 #==============================================================================
 # split domain into processes if mpi
 #==============================================================================
@@ -137,15 +152,15 @@ Btensy  = u.Quantity(np.zeros(x.shape), unit=u.N/u.m**3)
 #==============================================================================
 #calculate the magnetic field and pressure/density balancing expressions
 #==============================================================================
-for i in range(0,model_pars['nftubes']):
-    for j in range(i,model_pars['nftubes']):
+for i in range(0,Si.shape[0]):
+    for j in range(i,Si.shape[1]):
         if rank == 0:
             print'calculating ij-pair:',i,j
         if i == j:
             pressure_mi, rho_mi, Bxi, Byi ,Bzi, B2x, B2y =\
                 atm.flux_tubes.construct_magnetic_field(
                                              x, y, z,
-                                             xi[i], yi[i], Si[i],
+                                             xi[i,i], yi[i,i], Si[i,i],
                                              model_pars, option_pars,
                                              physical_constants,
                                              scales
@@ -159,8 +174,8 @@ for i in range(0,model_pars['nftubes']):
             pressure_mi, rho_mi, Fxi, Fyi, B2x, B2y =\
                 atm.flux_tubes.construct_pairwise_field(
                                              x, y, z,
-                                             xi[i], yi[i],
-                                             xi[j], yi[j], Si[i], Si[j],
+                                             xi[i,j], yi[i,j],
+                                             xi[j,i], yi[j,i], Si[i,j], Si[j,i],
                                              model_pars,
                                              option_pars,
                                              physical_constants,

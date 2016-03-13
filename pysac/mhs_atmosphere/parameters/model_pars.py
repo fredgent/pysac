@@ -8,6 +8,10 @@ Created on Thu Dec 11 17:45:48 2014
 import numpy as np
 import os
 import astropy.units as u
+import astropy
+l_astropy_0=True
+if astropy.__version__[0]=='1':
+        l_astropy_0=False
 
 hmi_model = {'photo_scale': 0.6*u.Mm,       #scale height for photosphere
              'chrom_scale': 0.1*u.Mm,      #scale height for chromosphere
@@ -262,15 +266,34 @@ def get_hmi_map(
     ny = s.shape[1]
     nx_int, ny_int = 2*nx-1, 2*ny-1 # size of interpolant 
     #pixel size in arc seconds
-    dx, dy = hmi_map.scale.items()[0][1],hmi_map.scale.items()[1][1]
-    x_int, y_int = np.mgrid[
-             hmi_map.xrange[0]+indx[0]*dx:hmi_map.xrange[0]+indx[1]*dx:1j*nx_int,
-             hmi_map.xrange[0]+indx[2]*dy:hmi_map.xrange[0]+indx[3]*dy:1j*ny_int
-                     ]
-    x, y = np.mgrid[
-             hmi_map.xrange[0]+indx[0]*dx:hmi_map.xrange[0]+indx[1]*dx:1j*nx,
-             hmi_map.xrange[0]+indx[2]*dy:hmi_map.xrange[0]+indx[3]*dy:1j*ny
-                     ]
+    if l_astropy_0:
+        dx, dy = hmi_map.scale.items()[0][1],hmi_map.scale.items()[1][1]
+        x_int, y_int = np.mgrid[
+                                hmi_map.xrange[0]+indx[0]*dx:
+                                hmi_map.xrange[0]+indx[1]*dx:1j*nx_int,
+                                hmi_map.xrange[0]+indx[2]*dy:
+                                hmi_map.xrange[0]+indx[3]*dy:1j*ny_int
+                               ]
+        x, y = np.mgrid[
+                        hmi_map.xrange[0]+indx[0]*dx:
+                        hmi_map.xrange[0]+indx[1]*dx:1j*nx,
+                        hmi_map.xrange[0]+indx[2]*dy:
+                        hmi_map.xrange[0]+indx[3]*dy:1j*ny
+                       ]
+    else:
+        dx, dy = hmi_map.scale.x.value,hmi_map.scale.y.value
+        x_int, y_int = np.mgrid[
+                                hmi_map.xrange[0].value+indx[0]*dx:
+                                hmi_map.xrange[0].value+indx[1]*dx:1j*nx_int,
+                                hmi_map.xrange[0].value+indx[2]*dy:
+                                hmi_map.xrange[0].value+indx[3]*dy:1j*ny_int
+                               ]
+        x, y = np.mgrid[
+                        hmi_map.xrange[0].value+indx[0]*dx:
+                        hmi_map.xrange[0].value+indx[1]*dx:1j*nx,
+                        hmi_map.xrange[0].value+indx[2]*dy:
+                        hmi_map.xrange[0].value+indx[3]*dy:1j*ny
+                       ]
         #arrays to interpolate s from/to
     fx = np.linspace(x_int.min(),x_int.max(),nx)
     fy = np.linspace(y_int.min(),y_int.max(),ny)

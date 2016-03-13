@@ -31,6 +31,10 @@ import numpy as np
 import pysac.mhs_atmosphere as atm
 import astropy.units as u
 from pysac.mhs_atmosphere.parameters.model_pars import hmi_model as model_pars
+import astropy
+l_astropy_0=True
+if astropy.__version__[0]=='1':
+    l_astropy_0=False
 #==============================================================================
 #check whether mpi is required and the number of procs = size
 #==============================================================================
@@ -57,8 +61,10 @@ option_pars = atm.options.set_options(model_pars, l_mpi, l_gdf=True)
 scales, physical_constants = \
     atm.units_const.get_parameters()
 
-#dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram.fits'
-dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram_fits'
+if l_astropy_0:
+    dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram_fits'
+else:
+    dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram.fits'
 l_newdata = True # change this to False if a local copy already exists at ~/sunpy/data/
 #obtain code coordinates and model parameters in astropy units
 model_pars['Nxyz'] = [64,64,128] # 3D grid

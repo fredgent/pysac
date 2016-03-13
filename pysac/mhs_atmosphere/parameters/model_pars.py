@@ -168,7 +168,9 @@ def get_hmi_coords(
                 dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram_fits',
                 sunpydir = os.path.expanduser(os.path.expanduser('~')+'/sunpy/data/'),
                 figsdir = os.path.expanduser(os.path.expanduser('~')+'/figs/hmi/'),
-                l_newdata = False
+                l_newdata = True,
+                rank=0,
+                lmpi=False
                    ):
     """
     get_coords returns a non-dimensional dictionary describing the domain
@@ -185,7 +187,9 @@ def get_hmi_coords(
                 dataset = dataset,
                 sunpydir = sunpydir,
                 figsdir = figsdir,
-                l_newdata = l_newdata
+                l_newdata = l_newdata,
+                rank=rank,
+                lmpi=lmpi
                )
     xmin=x.min()+(x.max()-x.min())*0.25
     xmax=x.min()+(x.max()-x.min())*0.75

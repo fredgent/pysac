@@ -26,6 +26,25 @@ hmi_model = {'photo_scale': 0.6*u.Mm,       #scale height for photosphere
              'pBplus': 1e-3*u.T}
 hmi_model['chratio'] = 1*u.one - hmi_model['coratio'] - hmi_model['phratio']
 
+sunspot = {'photo_scale': 0.60*u.Mm,
+             'chrom_scale': 0.1*u.Mm,
+             'corona_scale': 2.5e3*u.Mm,         #scale height for the corona
+             'coratio': 0.03*u.one,
+             'model': 'sunspot',
+             'phratio': 0.0*u.one,
+             'pixel': 0.36562475*u.Mm,  #(HMI pixel)
+             'radial_scale': 3.6096*u.Mm,
+             #'radial_scale': 0.14*u.Mm,
+             'nftubes': 1,
+             #'B_corona': 4.85e-4*u.T,
+             'B_corona': 5.5e-4*u.T,
+             'pBplus': 12.0e-4*u.T}
+sunspot['chratio'] = 1*u.one - sunspot['coratio'] - sunspot['phratio']
+#if 1D or 2D set unused dimensions to 0, and unrequired xyz limits to 1.
+sunspot['Nxyz'] = [512,512,256] # 3D grid
+#sunspot['Nxyz'] = [128,128,64] # 3D grid
+sunspot['xyz']  = [-25*u.Mm,25*u.Mm,-25*u.Mm,25*u.Mm,2.5*u.Mm,22.5*u.Mm] #grid size
+
 mfe_setup = {'photo_scale': 0.60*u.Mm,
              'chrom_scale': 0.4*u.Mm,
              'corona_scale': 0.25*u.Mm,  #scale height for the corona

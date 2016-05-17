@@ -286,7 +286,7 @@ def _write_dset_high(dset, data, arr_slice,collective=False):
     if collective:
         dset[arr_slice,...] = data
     else:
-        dset[arr_slice] = np.ascontiguousarray(data)
+        dset[arr_slice,...] = np.ascontiguousarray(data)
 
 def _write_dset_low(dset, data, arr_slice, collective=False):
     memory_space = h5s.create_simple(data.shape)

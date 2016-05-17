@@ -29,7 +29,7 @@ import os
 import numpy as np
 import pysac.mhs_atmosphere as atm
 import astropy.units as u
-from pysac.mhs_atmosphere.parameters.model_pars import paper2d as model_pars
+from pysac.mhs_atmosphere.parameters.model_pars import mfe_setup as model_pars
 #==============================================================================
 #check whether mpi is required and the number of procs = size
 #==============================================================================
@@ -40,9 +40,11 @@ try:
     rank = comm.Get_rank()
     size = comm.Get_size()
 
+    collective=True
     l_mpi = True
     l_mpi = l_mpi and (size != 1)
 except ImportError:
+    collective=False
     l_mpi = False
     rank = 0
     size = 1

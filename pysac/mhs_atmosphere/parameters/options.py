@@ -36,6 +36,7 @@ def set_options(model, l_mpi, l_gdf=True):
         'l_multi_twist': False,# multiple flux tubes as described in GFE (2014)
         'l_2D_loop':     False,# make a 2D loop with sinusoidal Bz(x,0,0)
         'l_mfe':         False,# model Viktor's model from MFE (2014)      
+        'l_sunspot':     False,# model sunspot (2016)      
         'l_atmos_val3c_mtw':False,# interpolate composite VAL3c+MTW atmosphere
         'suffix':        '.gdf'
     }

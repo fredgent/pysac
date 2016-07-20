@@ -83,11 +83,6 @@ def set_options(model, l_mpi, l_gdf=True):
         option_pars['l_B0_expz']         = True
         option_pars['l_multi_lanes'    ] = True
         option_pars['l_atmos_val3c_mtw'] = True
-    if model['model'] == 'hmi_model':
-        option_pars['l_B0_quadz']        = True
-        option_pars['l_single']          = True
-        option_pars['l_hmi']             = True
-        option_pars['l_atmos_val3c_mtw'] = True
     if model['model'] == 'loop_model':
         option_pars['l_B0_quadz']        = True
         option_pars['l_single']          = True

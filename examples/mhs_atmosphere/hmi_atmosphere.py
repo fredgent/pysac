@@ -214,7 +214,7 @@ import matplotlib.pyplot as plt
 plt.figure()
 cmax=max(-Stmp.min().value,Stmp.max().value)
 cmin=-cmax
-plt.pcolormesh(x[:,:,0].T.value,y[:,:,0].T.value,Bz[:,:,0].T.value)#,vmin=cmin,vmax=cmax)
+plt.pcolormesh(x[:,:,0].T.value,y[:,:,0].T.value,Bz[:,:,0].T.value,vmin=cmin,vmax=cmax)
 plt.xlabel('lon [Mm]')
 plt.ylabel('lat [Mm]')
 plt.axis([x.min().value,x.max().value,y.min().value,y.max().value])

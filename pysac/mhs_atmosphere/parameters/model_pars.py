@@ -16,9 +16,9 @@ if astropy.__version__[0]=='1':
 hmi_model = {'photo_scale': 0.6*u.Mm,       #scale height for photosphere
              'chrom_scale': 0.1*u.Mm,      #scale height for chromosphere
              'corona_scale': 2.5e3*u.Mm,      #scale height for the corona
-             'coratio': 0.03*u.one,  #footpoint portion scaling as corona 
+             'coratio': 0*u.one,  #footpoint portion scaling as corona 
              'model': 'hmi_model',
-             'phratio': 0.15*u.one,  #footpoint portion scaling as photosphere
+             'phratio': 0*u.one,  #footpoint portion scaling as photosphere
              'pixel': 0.36562475*u.Mm,      #(HMI pixel)
              'radial_scale': 0.10979002*u.Mm, #=> FWHM = half pixel
              'nftubes': 1,
@@ -192,6 +192,8 @@ def get_hmi_coords(
                 sunpydir = os.path.expanduser(os.path.expanduser('~')+'/sunpy/data/'),
                 figsdir = os.path.expanduser(os.path.expanduser('~')+'/figs/hmi/'),
                 l_newdata = True,
+                interpfactor=5,
+                frac=[0,0],
                 rank=0,
                 lmpi=False
                    ):
@@ -211,13 +213,15 @@ def get_hmi_coords(
                 sunpydir = sunpydir,
                 figsdir = figsdir,
                 l_newdata = l_newdata,
+                interpfactor=interpfactor,
+                frac=frac,
                 rank=rank,
                 lmpi=lmpi
                )
-    xmin=x.min()+(x.max()-x.min())*0.25
-    xmax=x.min()+(x.max()-x.min())*0.75
-    ymin=y.min()+(y.max()-y.min())*0.25
-    ymax=y.min()+(y.max()-y.min())*0.75
+    xmin=x.min()+(x.max()-x.min())*frac[0]
+    xmax=x.min()+(x.max()-x.min())*(1-frac[0])
+    ymin=y.min()+(y.max()-y.min())*frac[1]
+    ymax=y.min()+(y.max()-y.min())*(1-frac[1])
     coords = {
               'dx':(xmax-xmin)/(Nxyz[0]-1),
               'dy':(ymax-ymin)/(Nxyz[1]-1),
@@ -241,6 +245,8 @@ def get_hmi_map(
         sunpydir = os.path.expanduser(os.path.expanduser('~')+'/sunpy/data/'),
         figsdir = os.path.expanduser(os.path.expanduser('~')+'/figs/hmi/'),
         l_newdata = False,
+        interpfactor=5,
+        frac=[0,0],
         rank=0,
         lmpi=False
                ):
@@ -283,35 +289,35 @@ def get_hmi_map(
     s = hmi_map.data[indx[0]:indx[1],indx[2]:indx[3]] #units of Gauss Bz
     nx = s.shape[0]
     ny = s.shape[1]
-    nx_int, ny_int = 2*nx-1, 2*ny-1 # size of interpolant 
+    nx_int, ny_int = interpfactor*(nx-1)+1, interpfactor*(ny-1)+1 # size of interpolant 
     #pixel size in arc seconds
-    if l_astropy_0:
+    if not l_astropy_0:
         dx, dy = hmi_map.scale.items()[0][1],hmi_map.scale.items()[1][1]
         x_int, y_int = np.mgrid[
                                 hmi_map.xrange[0]+indx[0]*dx:
-                                hmi_map.xrange[0]+indx[1]*dx:1j*nx_int,
-                                hmi_map.xrange[0]+indx[2]*dy:
-                                hmi_map.xrange[0]+indx[3]*dy:1j*ny_int
+                                hmi_map.xrange[0]+(indx[1]-1)*dx:1j*nx_int,
+                                hmi_map.yrange[0]+indx[2]*dy:
+                                hmi_map.yrange[0]+(indx[3]-1)*dy:1j*ny_int
                                ]
         x, y = np.mgrid[
                         hmi_map.xrange[0]+indx[0]*dx:
-                        hmi_map.xrange[0]+indx[1]*dx:1j*nx,
-                        hmi_map.xrange[0]+indx[2]*dy:
-                        hmi_map.xrange[0]+indx[3]*dy:1j*ny
+                        hmi_map.xrange[0]+(indx[1]-1)*dx:1j*nx,
+                        hmi_map.yrange[0]+indx[2]*dy:
+                        hmi_map.yrange[0]+(indx[3]-1)*dy:1j*ny
                        ]
     else:
         dx, dy = hmi_map.scale.x.value,hmi_map.scale.y.value
         x_int, y_int = np.mgrid[
                                 hmi_map.xrange[0].value+indx[0]*dx:
                                 hmi_map.xrange[0].value+indx[1]*dx:1j*nx_int,
-                                hmi_map.xrange[0].value+indx[2]*dy:
-                                hmi_map.xrange[0].value+indx[3]*dy:1j*ny_int
+                                hmi_map.yrange[0].value+indx[2]*dy:
+                                hmi_map.yrange[0].value+indx[3]*dy:1j*ny_int
                                ]
         x, y = np.mgrid[
                         hmi_map.xrange[0].value+indx[0]*dx:
                         hmi_map.xrange[0].value+indx[1]*dx:1j*nx,
-                        hmi_map.xrange[0].value+indx[2]*dy:
-                        hmi_map.xrange[0].value+indx[3]*dy:1j*ny
+                        hmi_map.yrange[0].value+indx[2]*dy:
+                        hmi_map.yrange[0].value+indx[3]*dy:1j*ny
                        ]
         #arrays to interpolate s from/to
     fx = np.linspace(x_int.min(),x_int.max(),nx)
@@ -324,16 +330,64 @@ def get_hmi_map(
     #regions are of interest, where curvature or orientation near the lim
     #of the surface is significant. 
     s_int  = f(xnew,ynew) #interpolate s and convert units to Tesla
-    interp_scale = 0.25
+    interp_scale = 1. #contribution to field strength from location
+    interp_scale += 2. #contribution to field strength from 4 lateral neighbours
+    interp_scale += 0.146524 #contribution from nearest 4 diagonal neighbours
     xq = u.Quantity(x * 7.25e5, unit= u.m)
     yq = u.Quantity(y * 7.25e5, unit= u.m)
     xq_int = u.Quantity(x_int * 7.25e5, unit= u.m)
     yq_int = u.Quantity(y_int * 7.25e5, unit= u.m)
     sq = u.Quantity(s * 1e-4, unit= u.T)
-    sq_int = u.Quantity(s_int * 1e-4 * interp_scale, unit= u.T)
+    sq_int = u.Quantity(s_int * 1e-4 / interp_scale, unit= u.T)
 
     dx *= 7.25e5 * u.m
     dy *= 7.25e5 * u.m
-    FWHM  = 0.5*(dx+dy)
+    pixel = (dx+dy)*0.5
+    FWHM  = 2*pixel/interpfactor
+
+    import matplotlib.pyplot as plt
+    xmin=xq.to(u.Mm).min().value+(xq.to(u.Mm).max().value-xq.to(u.Mm).min().value)*frac[0]
+    xmax=xq.to(u.Mm).min().value+(xq.to(u.Mm).max().value-xq.to(u.Mm).min().value)*(1-frac[0])
+    ymin=yq.to(u.Mm).min().value+(yq.to(u.Mm).max().value-yq.to(u.Mm).min().value)*frac[0]
+    ymax=yq.to(u.Mm).min().value+(yq.to(u.Mm).max().value-yq.to(u.Mm).min().value)*(1-frac[0])
+
+    cmax = max(-sq_int.min().value, sq_int.max().value)
+    cmin=-cmax
+    
+    plt.figure()
+    plt.pcolormesh(xq_int.T.to(u.Mm).value, yq_int.T.to(u.Mm).value, sq_int.T.value,
+                   vmin=cmin, vmax=cmax)
+    plt.xlabel('lon [Mm]')
+    plt.ylabel('lat [Mm]')
+    plt.axis([xmin,xmax,ymin,ymax])
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(r'$B_z$ [T]')
+    cbar.solids.set_edgecolor("face")
+    plt.savefig('model_domain_hmi.png')
+    plt.close()
+
+    plt.figure()
+    plt.pcolormesh(xq_int.T.to(u.Mm).value, yq_int.T.to(u.Mm).value, sq_int.T.value,
+                   vmin=cmin, vmax=cmax)
+    plt.axis([xq.to(u.Mm).value.min(),xq.to(u.Mm).value.max(),yq.to(u.Mm).value.min(),yq.to(u.Mm).value.max()])
+    plt.xlabel('lon [Mm]')
+    plt.ylabel('lat [Mm]')
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(r'$B_z$ [T]')
+    cbar.solids.set_edgecolor("face")
+    plt.savefig('interpolated_hmi.png')
+    plt.close()
+
+    plt.figure()
+    plt.pcolormesh(xq.T.to(u.Mm).value, yq.T.to(u.Mm).value, sq.T.value,
+                   vmin=cmin, vmax=cmax)
+    plt.axis([xq.to(u.Mm).value.min(),xq.to(u.Mm).value.max(),yq.to(u.Mm).value.min(),yq.to(u.Mm).value.max()])
+    plt.xlabel('lon [Mm]')
+    plt.ylabel('lat [Mm]')
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(r'$B_z$ [T]')
+    cbar.solids.set_edgecolor("face")
+    plt.savefig('hmi.png')
+    plt.close()
 
     return sq_int, xq_int, yq_int, FWHM, sq, xq, yq

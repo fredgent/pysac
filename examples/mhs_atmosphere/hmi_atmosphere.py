@@ -63,21 +63,25 @@ option_pars = atm.options.set_options(model_pars, l_mpi, l_gdf=True)
 scales, physical_constants = \
     atm.units_const.get_parameters()
 
-if l_astropy_0:
+if not l_astropy_0:
     dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram_fits'
 else:
     dataset = 'hmi_m_45s_2014_07_06_00_00_45_tai_magnetogram.fits'
 l_newdata = True # change this to False if a local copy already exists at ~/sunpy/data/
 #obtain code coordinates and model parameters in astropy units
-model_pars['Nxyz'] = [64,64,128] # 3D grid
+model_pars['Nxyz'] = [64,64,64] # 3D grid
 model_pars['xyz']  = [-0.63*u.Mm,0.63*u.Mm,-0.63*u.Mm,0.63*u.Mm,0.0*u.Mm,3.8*u.Mm]
-indx = [1787,1798,1818,1826]
+indx = [1785,1800,1814,1829]
+interpfactor=5
+frac = [0.25,0.25]
 coords = atm.model_pars.get_hmi_coords(
                 model_pars['Nxyz'],
                 model_pars['xyz'],
                 indx = indx,
                 dataset = dataset,
                 l_newdata = False,
+                interpfactor=interpfactor,
+                frac=frac,
                 rank=rank,
                 lmpi=l_mpi
                )
@@ -116,10 +120,13 @@ Stmp,xtmp,ytmp,FWHM,sdummy,xdummy,ydummy=atm.parameters.model_pars.get_hmi_map(
                 indx,
                 dataset = dataset,
                 l_newdata = False,
+                interpfactor=interpfactor,
+                frac=frac,
                 rank=rank,
                 lmpi=l_mpi
                )
-xi, yi, Si = xtmp.to(u.Mm), ytmp.to(u.Mm), Stmp
+xi, yi, Si = xtmp.to(u.Mm).reshape(xtmp.size),\
+             ytmp.to(u.Mm).reshape(ytmp.size), Stmp.reshape(Stmp.size)
 model_pars['radial_scale'] = 0.5*FWHM.to(u.Mm)/np.sqrt(2*np.log(2))
 #==============================================================================
 # split domain into processes if mpi
@@ -164,15 +171,15 @@ Btensy  = u.Quantity(np.zeros(x.shape), unit=u.N/u.m**3)
 #==============================================================================
 #calculate the magnetic field and pressure/density balancing expressions
 #==============================================================================
-for i in range(0,Si.shape[0]):
-    for j in range(i,Si.shape[1]):
+for i in range(0,Si.size):
+    for j in range(i,Si.size):
         if rank == 0:
             print'calculating ij-pair:',i,j
         if i == j:
             pressure_mi, rho_mi, Bxi, Byi ,Bzi, B2x, B2y =\
                 atm.flux_tubes.construct_magnetic_field(
                                              x, y, z,
-                                             xi[i,i], yi[i,i], Si[i,i],
+                                             xi[i], yi[i], Si[i],
                                              model_pars, option_pars,
                                              physical_constants,
                                              scales
@@ -186,8 +193,8 @@ for i in range(0,Si.shape[0]):
             pressure_mi, rho_mi, Fxi, Fyi, B2x, B2y =\
                 atm.flux_tubes.construct_pairwise_field(
                                              x, y, z,
-                                             xi[i,j], yi[i,j],
-                                             xi[j,i], yi[j,i], Si[i,j], Si[j,i],
+                                             xi[i], yi[i],
+                                             xi[j], yi[j], Si[i], Si[j],
                                              model_pars,
                                              option_pars,
                                              physical_constants,
@@ -202,6 +209,21 @@ for i in range(0,Si.shape[0]):
 
 # clear some memory
 del pressure_mi, rho_mi, Bxi, Byi ,Bzi, B2x, B2y
+
+import matplotlib.pyplot as plt
+plt.figure()
+cmax=max(-Bz.min().value,Bz.max().value)
+cmin=-cmax
+plt.pcolormesh(x[:,:,0].T.value,y[:,:,0].T.value,Bz[:,:,0].T.value)#,vmin=cmin,vmax=cmax)
+plt.xlabel('lon [Mm]')
+plt.ylabel('lat [Mm]')
+plt.axis([x.min().value,x.max().value,y.min().value,y.max().value])
+cbar = plt.colorbar()
+cbar.ax.set_ylabel(r'$B_z$ [T]')
+cbar.solids.set_edgecolor("face")
+plt.savefig('model_derived_hmi.png')
+plt.close()
+print 'Bz[:,:,0].min(), Bz[:,:,0].max()=', Bz[:,:,0].min(), Bz[:,:,0].max()
 #==============================================================================
 # Construct 3D hs arrays and then add the mhs adjustments to obtain atmosphere
 #==============================================================================
@@ -219,8 +241,8 @@ pressure, rho = atm.mhs_3D.mhs_3D_profile(z,
                                   )
 magp = (Bx**2 + By**2 + Bz**2)/(2.*physical_constants['mu0'])
 if rank ==0:
-    print'max B corona = ',magp[:,:,-1].max().decompose()
-    print'min B corona = ',magp[:,:,-1].min().decompose()
+    print'max pB corona = ',magp[:,:,-1].max().decompose()
+    print'min pB corona = ',magp[:,:,-1].min().decompose()
 energy = atm.mhs_3D.get_internal_energy(pressure,
                                                   magp,
                                                   physical_constants)

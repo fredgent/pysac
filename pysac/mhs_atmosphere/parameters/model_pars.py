@@ -207,7 +207,7 @@ def get_hmi_coords(
     Zext = u.Quantity(np.linspace(Z.min().value-4.*dz.value,
                                   Z.max().value+4.*dz.value, Nxyz[2]+8),
                       unit=u.Mm)
-    s,x,y,FWHM,sdummy,xdummy,ydummy=get_hmi_map(
+    s,x,y,FWHM,sdummy,xdummy,ydummy,c1,c2=get_hmi_map(
                 indx,
                 dataset = dataset,
                 sunpydir = sunpydir,
@@ -332,9 +332,12 @@ def get_hmi_map(
     s_int  = f(xnew,ynew) #interpolate s and convert units to Tesla
     interp_scale = 1. #contribution to field strength from location
     interp_scale += 2. #contribution to field strength from 4 lateral neighbours
-    interp_scale += 0.146524 #contribution from nearest 4 diagonal neighbours
-    xq = u.Quantity(x * 7.25e5, unit= u.m)
-    yq = u.Quantity(y * 7.25e5, unit= u.m)
+    interp_scale += 0.2706705664732254 #contribution from nearest 4 diagonal neighbours
+    interp_scale += 0.036631277777468357 #from 2nd nearest 4 lateral
+    interp_scale += 0.026951787996341868 #from 1st 8 offset diagonals
+    interp_scale += 0.00067092525580502371 #from 2nd 4 diagonals
+    xq = u.Quantity(x_int * 7.25e5, unit= u.m)
+    yq = u.Quantity(y_int * 7.25e5, unit= u.m)
     xq_int = u.Quantity(x_int * 7.25e5, unit= u.m)
     yq_int = u.Quantity(y_int * 7.25e5, unit= u.m)
     sq = u.Quantity(s * 1e-4, unit= u.T)
@@ -351,23 +354,11 @@ def get_hmi_map(
     ymin=yq.to(u.Mm).min().value+(yq.to(u.Mm).max().value-yq.to(u.Mm).min().value)*frac[0]
     ymax=yq.to(u.Mm).min().value+(yq.to(u.Mm).max().value-yq.to(u.Mm).min().value)*(1-frac[0])
 
-    cmax = max(-sq_int.min().value, sq_int.max().value)
+    cmax = max(-s_int.min()*1e-4, s_int.max()*1e-4)
     cmin=-cmax
-    
-    plt.figure()
-    plt.pcolormesh(xq_int.T.to(u.Mm).value, yq_int.T.to(u.Mm).value, sq_int.T.value,
-                   vmin=cmin, vmax=cmax)
-    plt.xlabel('lon [Mm]')
-    plt.ylabel('lat [Mm]')
-    plt.axis([xmin,xmax,ymin,ymax])
-    cbar = plt.colorbar()
-    cbar.ax.set_ylabel(r'$B_z$ [T]')
-    cbar.solids.set_edgecolor("face")
-    plt.savefig('model_domain_hmi.png')
-    plt.close()
 
     plt.figure()
-    plt.pcolormesh(xq_int.T.to(u.Mm).value, yq_int.T.to(u.Mm).value, sq_int.T.value,
+    plt.pcolormesh(xq_int.T.to(u.Mm).value, yq_int.T.to(u.Mm).value, s_int.T*1e-4,
                    vmin=cmin, vmax=cmax)
     plt.axis([xq.to(u.Mm).value.min(),xq.to(u.Mm).value.max(),yq.to(u.Mm).value.min(),yq.to(u.Mm).value.max()])
     plt.xlabel('lon [Mm]')
@@ -390,4 +381,22 @@ def get_hmi_map(
     plt.savefig('hmi.png')
     plt.close()
 
-    return sq_int, xq_int, yq_int, FWHM, sq, xq, yq
+    cmax = max(-sq[s.shape[0]*frac[0]:s.shape[0]*(1-frac[0]),
+                   s.shape[1]*frac[1]:s.shape[1]*(1-frac[1])].value.min(),
+                sq[s.shape[0]*frac[0]:s.shape[0]*(1-frac[0]),
+                   s.shape[1]*frac[1]:s.shape[1]*(1-frac[1])].value.max())*1.1
+    cmin=-cmax
+
+    plt.figure()
+    plt.pcolormesh(xq_int.T.to(u.Mm).value, yq_int.T.to(u.Mm).value, s_int.T*1e-4,
+                   vmin=cmin, vmax=cmax)
+    plt.xlabel('lon [Mm]')
+    plt.ylabel('lat [Mm]')
+    plt.axis([xmin,xmax,ymin,ymax])
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(r'$B_z$ [T]')
+    cbar.solids.set_edgecolor("face")
+    plt.savefig('model_domain_hmi.png')
+    plt.close()
+
+    return sq_int, xq_int, yq_int, FWHM, sq, xq, yq, cmax, cmin

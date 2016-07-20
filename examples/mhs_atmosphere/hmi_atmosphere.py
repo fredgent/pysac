@@ -116,7 +116,8 @@ pressure_Z, rho_Z, Rgas_Z = atm.hs_atmosphere.vertical_profile(
 # load flux tube footpoint parameters
 #==============================================================================
 # axial location and value of Bz at each footpoint
-Stmp,xtmp,ytmp,FWHM,sdummy,xdummy,ydummy=atm.parameters.model_pars.get_hmi_map(
+Stmp,xtmp,ytmp,FWHM,sdummy,xdummy,ydummy,cmax,cmin \
+               =atm.parameters.model_pars.get_hmi_map(
                 indx,
                 dataset = dataset,
                 l_newdata = False,
@@ -212,8 +213,6 @@ del pressure_mi, rho_mi, Bxi, Byi ,Bzi, B2x, B2y
 
 import matplotlib.pyplot as plt
 plt.figure()
-cmax=max(-Stmp.min().value,Stmp.max().value)
-cmin=-cmax
 plt.pcolormesh(x[:,:,0].T.value,y[:,:,0].T.value,Bz[:,:,0].T.value,vmin=cmin,vmax=cmax)
 plt.xlabel('lon [Mm]')
 plt.ylabel('lat [Mm]')

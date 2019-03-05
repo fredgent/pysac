@@ -43,10 +43,10 @@ def get_flux_tubes(
         Si = [[0.5]]*u.T # 128.5mT SI units
     # parameters for matching Mumford,Fedun,Erdelyi 2014
     if option_pars['l_mfe']:
-        Si = [[0.1436]]*u.T # 128.5mT SI units
+        Si = [[0.15]]*u.T # [[0.1436]]*u.T 128.5mT SI units
     # parameters for matching Gent,Fedun,Mumford,Erdelyi 2014
     elif option_pars['l_single']:
-        Si = [[0.1]]*u.T # 100mT SI units
+        Si = [[-0.1]]*u.T # 100mT SI units
     # parameters for matching Gent,Fedun,Erdelyi 2014 flux tube pair
     elif option_pars['l_tube_pair']:
         xi, yi, Si = (
@@ -66,6 +66,54 @@ def get_flux_tubes(
                                 [  50e-3],
                                 [  50e-3],
                                 [  50e-3],
+                                [  50e-3]
+                               ], unit=u.T)
+                     )# 50mT SI
+    elif option_pars['l_tube_pair_test']:
+        xi, yi, Si = (
+                      u.Quantity([
+                                [  1.0],
+                                [  1.0],
+                                [- 1.0],
+                                [- 1.0]
+                               ], unit=u.Mm),
+                      u.Quantity([
+                                [ 0.00],
+                                [ 0.00],
+                                [ 0.00],
+                                [ 0.00]
+                               ], unit=u.Mm),
+                      u.Quantity([
+                                [  50e-3],
+                                [  50e-3],
+                                [  50e-3],
+                                [  50e-3]
+                               ], unit=u.T)
+                     )# 50mT SI
+    elif option_pars['l_tube_pair_test_2']:
+        xi, yi, Si = (
+                      u.Quantity([
+                                [  1.0],
+                                [- 1.0]
+                               ], unit=u.Mm),
+                      u.Quantity([
+                                [ 0.00],
+                                [ 0.00]
+                               ], unit=u.Mm),
+                      u.Quantity([
+                                [ 100e-3],
+                                [-100e-3]
+                               ], unit=u.T)
+                     )# 50mT SI
+    elif option_pars['l_singletube']:
+        xi, yi, Si = (
+                      u.Quantity([
+                                [  0.0]
+                               ], unit=u.Mm),
+                      u.Quantity([
+                                [ 0.00]
+                               ], unit=u.Mm),
+                      u.Quantity([
                                 [  50e-3]
                                ], unit=u.T)
                      )# 50mT SI
@@ -268,6 +316,11 @@ def construct_magnetic_field(
         B10dz=- 2 * z *B1z**2/z1**2                    -  B2z**2/z2    -  B3z/z3
         B20dz=  8*z**2*B1z**3/z1**4 - 2*  B1z**2/z1**2 +2*B2z**3/z2**2 +2*B3z/z3**2
         B30dz=-48*z**3*B1z**4/z1**6 +24*z*B1z**3/z1**4 -6*B2z**4/z2**3 -6*B3z/z3**3
+    elif option_pars['l_B0_test']:
+        B0z = Bf1 * np.exp(-z/z1)
+        B10dz= - B0z/z1
+        B20dz= + B0z/z1**2
+        B30dz= - B0z/z1**3
     else:
         raise ValueError("in mhs_model.flux_tubes.construct_magnetic_field \
                   option_pars all False for axial strength Z dependence")
@@ -348,6 +401,11 @@ def construct_pairwise_field(x, y, z,
         B10dz= -2*z*B1z/z1**2                    - B2z/z2    - B3z/z3
         B20dz= -2*  B1z/z1**2 + 4*z**2*B1z/z1**4 + B2z/z2**2 + B3z/z3**2
         B30dz= 12*z*B1z/z1**4 - 8*z**3*B1z/z1**6 - B2z/z2**3 - B3z/z3**3
+    elif option_pars['l_B0_test']:
+        B0z = Bf1 * np.exp(-z/z1)
+        B10dz= - B0z/z1
+        B20dz= + B0z/z1**2
+        B30dz= - B0z/z1**3
     else:
         #if option_pars['l_BO_quadz']:
         B1z = Bf1 * z1**2 / (z**2 + z1**2)
@@ -412,6 +470,8 @@ def construct_pairwise_field(x, y, z,
                (x-xi) * fxyzi + (x-xj) * fxyzj )
     Fy   = - 2*Si*Sj/mu0 * G0ij*BB10dz2/f02 * (
                (y-yi) * fxyzi + (y-yj) * fxyzj )
+#    Fx   = (x-xi)/mu0 * Si*Sj*G0ij*B0z2*(-2.*fxyzi*fxyzi/f02)*BB10dz2 +(x-xi)/mu0 *Si*Sj*G0ij*B0z3*BB20dz
+#    Fx   = (y-yi)/mu0 * Si*Sj*G0ij*B0z2*(-2.*fxyzi*fxyzi/f02)*BB10dz2 +(y-yi)/mu0 *Si*Sj*G0ij*B0z2*B0z*BB10dz2
     #Define derivatives of Bx
     dxiBx = - Si * (BB10dz * G0i) \
             + 2 * Si * (x-xi)**2       * B10dz * B0z3 * G0i/f02

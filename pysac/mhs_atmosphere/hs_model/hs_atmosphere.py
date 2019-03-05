@@ -246,6 +246,7 @@ def vertical_profile(Z,
 #                  - 84.*(g0*rdata[-i-5])*dz
 #                  +  6.*(g0*rdata[-i-6])*dz
 #                  )/162. + magp[-i-1] - magp[-i-0]
+
     for i in range(1,Z.size):
         linp[-i-1] = (1152.*linp[-i]
                   + 35.*(g0*rdata[-i-7])*dz
@@ -254,5 +255,121 @@ def vertical_profile(Z,
                   -784.*(g0*rdata[-i-4])*dz
                   + 77.*(g0*rdata[-i-3])*dz
                   )/1152. + magp[-i-1] - magp[-i-0]
+
     thermalp_Z = linp
+
+
+#    try something with energy
+    eng_t   = u.Quantity(np.ones(table['Z'].size), u.one)
+    eng_t  *= Rgas*table_T/(physical_constants['gamma'] -1.0)
+    eng_Z   = eng_t[4:-4].copy()
+    rho_ref = 200.0*rdata[1]  #20.0*rdata[1]
+    rho_t   = u.Quantity(np.ones(table['Z'].size), u.one)
+    rho_t  *= rho_ref
+    rho_Z   = rho_t[4:-4].copy()
+    table_TZ= table_T[4:-4].copy()
+#    magp0_Z=magp0[4:-4].copy
+
+#    print magp0
+
+    for i in range(1,Z.size-1):
+	dg  =  2.0*(physical_constants['gamma']-1.0)*eng_Z[i] + g0*dz.to('m')
+	dg  =  dg/(2.0*(physical_constants['gamma']-1.0)*eng_Z[i+1] -g0*dz )
+	rho_Z[i+1] = rho_Z[i]*dg  
+#	print rho_Z[i+1], Z[i]
+
+    thermalp_Z = Rgas_Z*rho_Z*table_TZ + magp0
+    rdata_Z    = rho_Z
+
+#    print thermalp_Z
+#    print (rdata_Z*g0-np.gradient(thermalp_Z)/dz.to('m'))/rdata_Z
+    return thermalp_Z, rdata_Z, Rgas_Z
+
+#============================================================================
+# Construct 3D hydrostatic test profile SNOW
+#============================================================================
+def vertical_profile_test(Z,
+                     table,
+                     magp0,
+                     physical_constants, dz, rhom_mean
+                    ):
+    """Return the vertical profiles for thermal pressure and density in 1D.
+       Integrate in reverse from the corona to the photosphere to remove
+       sensitivity to larger chromospheric gradients."""
+    g0 = physical_constants['gravity'].to('m s-2')
+    Rgas = u.Quantity(np.ones(table['Z'].size), u.one)
+    Rgas *= (physical_constants['boltzmann']/\
+                physical_constants['proton_mass']/table['mu']).to('m2 K-1 s-2')
+    Rgas_Z  = Rgas[4:-4].copy()
+    rdata   = u.Quantity(table['rho'], copy=True).to('kg m-3')
+    rdata_Z = rdata[4:-4].copy()
+    magp = magp0.to('kg m-1 s-2')
+    # inverted SAC 4th order derivative scheme to minimise numerical error
+    """evaluate upper boundary pressure from equation of state + enhancement,
+       magp, which will be replaced by the mean magnetic pressure in the
+       corona, then integrate from inner next pressure
+    """
+    table_T = u.Quantity(table['T'])
+    linp_1 = table_T[-1]*rdata[-1]*Rgas[-1] + magp[-1]
+    linp = u.Quantity(np.ones(len(Z)), unit=linp_1.unit)
+    linp[-1] = table_T[-5]*rdata[-5]*Rgas[-5] + magp[-1]
+
+#    for i in range(1,Z.size):
+#        linp[-i-1] = (144.*linp[-i]+18.*linp[-i+1]
+#                  -102.*(g0*rdata[-i-4]  )*dz
+#                  - 84.*(g0*rdata[-i-5])*dz
+#                  +  6.*(g0*rdata[-i-6])*dz
+#                  )/162. + magp[-i-1] - magp[-i-0]
+
+    for i in range(1,Z.size):
+        linp[-i-1] = (1152.*linp[-i]
+                  + 35.*(g0*rdata[-i-7])*dz
+                  -112.*(g0*rdata[-i-6])*dz
+                  -384.*(g0*rdata[-i-5])*dz
+                  -784.*(g0*rdata[-i-4])*dz
+                  + 77.*(g0*rdata[-i-3])*dz
+                  )/1152. + magp[-i-1] - magp[-i-0]
+
+    thermalp_Z = linp
+
+
+#    try something with energy
+    eng_t   = u.Quantity(np.ones(table['Z'].size), u.one)
+    eng_t  *= Rgas*table_T/(physical_constants['gamma'] -1.0)
+    eng_Z   = eng_t[4:-4].copy()
+    rho_ref = np.max(rdata)  #200.0*rdata[1]
+    rho_t   = u.Quantity(np.ones(table['Z'].size), u.one)
+    rho_t  *= rho_ref #20*
+#    rho_t  -= rhom_min
+#    print rho_ref - rhom_min
+    rho_Z   = rho_t[4:-4].copy()
+    rho_Z  += rhom_mean
+    table_TZ= table_T[4:-4].copy()
+#    magp0_Z=magp0[4:-4].copy
+
+#    print magp0
+
+    for i in range(1,Z.size-1):
+	dg  =  2.0*(physical_constants['gamma']-1.0)*eng_Z[i] + g0*dz.to('m')
+	dg  =  dg/(2.0*(physical_constants['gamma']-1.0)*eng_Z[i+1] -g0*dz )
+	rho_Z[i+1] = rho_Z[i]*dg  
+#	print rho_Z[i+1], Z[i]
+
+#   calculate thermal pressure
+    thermalp_Z = Rgas_Z*rho_Z*table_TZ
+
+#   Correct to value at base
+    tcorrtemp  =  u.Quantity(np.ones(table['Z'].size), u.one)
+    tcorr  = tcorrtemp[4:-4].copy()
+    tcorr *=  table_TZ[1]*Rgas_Z[1]*rho_Z[1] - thermalp_Z[1]
+    thermalp_Z += tcorr
+
+    print 'temperature at z=1 ', table_TZ[1], thermalp_Z[1]/(Rgas_Z[1]*rho_Z[1])
+
+#   Add the magnetic reference pressure 
+    thermalp_Z += magp0
+    rdata_Z    = rho_Z
+
+#    print thermalp_Z
+#    print (rdata_Z*g0-np.gradient(thermalp_Z)/dz.to('m'))/rdata_Z
     return thermalp_Z, rdata_Z, Rgas_Z
